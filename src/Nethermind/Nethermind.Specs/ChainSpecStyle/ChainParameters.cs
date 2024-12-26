@@ -19,6 +19,7 @@ public class ChainParameters
     public Hash256 ForkCanonHash { get; set; }
     public long? ForkBlock { get; set; }
     public long? Eip7Transition { get; set; }
+    public long? Eip98Transition { get; set; }
     public long? Eip150Transition { get; set; }
     public long? Eip152Transition { get; set; }
     public long? Eip160Transition { get; set; }

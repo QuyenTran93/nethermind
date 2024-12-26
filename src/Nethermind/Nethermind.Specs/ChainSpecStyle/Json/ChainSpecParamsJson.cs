@@ -30,6 +30,8 @@ internal class ChainSpecParamsJson
 
     public long? Eip7Transition { get; set; }
 
+    public long? Eip98Transition { get; set; }
+
     public long? Eip150Transition { get; set; }
 
     public long? Eip152Transition { get; set; }
