@@ -1,7 +1,7 @@
 #!/bin/sh
 commit_hash=$(git rev-parse HEAD)
 echo $commit_hash
-build_timestamp=$(date '+%s')
+build_timestamp=$(git show -s --date=format:'%s' --format=%cd ${commit_hash})
 echo $commit_date
 
 docker build \
