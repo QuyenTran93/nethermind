@@ -57,6 +57,7 @@ namespace Nethermind.JsonRpc
         public long? MaxBatchResponseBodySize { get; set; } = 32.MiB();
         public long? MaxSimulateBlocksCap { get; set; } = 256;
         public int EstimateErrorMargin { get; set; } = 150;
+        public bool UseMinGasPriceInEstimates { get; set; } = false;
     };
 };
 
