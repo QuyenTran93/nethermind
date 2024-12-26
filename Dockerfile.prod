@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: 2022 Demerzel Solutions Limited
+# SPDX-License-Identifier: LGPL-3.0-only
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0-jammy AS build
+
+ARG BUILD_CONFIG=release
+ARG BUILD_TIMESTAMP
+ARG COMMIT_HASH
+
+COPY src/Nethermind src/Nethermind
+
+RUN dotnet publish src/Nethermind/Nethermind.Runner -c $BUILD_CONFIG -a x64 -c release -o /publish --sc false \
+-p:BuildTimestamp=$BUILD_TIMESTAMP -p:Commit=$COMMIT_HASH
+
+# A temporary symlink to support the old executable name
+RUN ln -s -r /publish/nethermind /publish/Nethermind.Runner
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-jammy
+
+WORKDIR /nethermind
+
+VOLUME /nethermind/keystore
+VOLUME /nethermind/logs
+VOLUME /nethermind/nethermind_db
+VOLUME /nethermind/configs
+VOLUME /nethermind/chainspec
+
+EXPOSE 8545 8551 30303/tcp 30303/udp
+
+COPY --from=build /publish .
+
+ENTRYPOINT ["./nethermind"]
