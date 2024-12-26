@@ -113,6 +113,11 @@ public interface IJsonRpcConfig : IConfig
     public int MaxLogsPerResponse { get; set; }
 
     [ConfigItem(
+            Description = "Set a lower limit for GetGasPriceEstimate. This ensure rpc calls to eth_gasPrice are never below the limit set by MiningConfig.MinGasPrice",
+            DefaultValue = "false")]
+    bool UseMinGasPriceInEstimates { get; set; }
+
+    [ConfigItem(
         Description = """
             The number of concurrent instances for non-sharable calls:
 
