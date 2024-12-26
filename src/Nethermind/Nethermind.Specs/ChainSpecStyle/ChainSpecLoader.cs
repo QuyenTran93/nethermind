@@ -100,6 +100,7 @@ public class ChainSpecLoader(IJsonSerializer serializer) : IChainSpecLoader
             ForkBlock = chainSpecJson.Params.ForkBlock,
             ForkCanonHash = chainSpecJson.Params.ForkCanonHash,
             Eip7Transition = chainSpecJson.Params.Eip7Transition,
+            Eip98Transition = chainSpecJson.Params.Eip98Transition,
             Eip150Transition = chainSpecJson.Params.Eip150Transition ?? 0,
             Eip152Transition = chainSpecJson.Params.Eip152Transition,
             Eip160Transition = chainSpecJson.Params.Eip160Transition ?? 0,
