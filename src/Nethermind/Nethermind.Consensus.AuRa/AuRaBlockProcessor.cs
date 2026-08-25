@@ -31,6 +31,7 @@ namespace Nethermind.Consensus.AuRa
         private readonly IBlockFinder _blockTree;
         private readonly AuRaContractGasLimitOverride? _gasLimitOverride;
         private readonly ContractRewriter? _contractRewriter;
+        private readonly BalanceRewriter? _balanceRewriter;
         private readonly ITxFilter _txFilter;
         private readonly ILogger _logger;
 
@@ -49,7 +50,8 @@ namespace Nethermind.Consensus.AuRa
             ITxFilter? txFilter = null,
             AuRaContractGasLimitOverride? gasLimitOverride = null,
             ContractRewriter? contractRewriter = null,
-            IBlockCachePreWarmer? preWarmer = null)
+            IBlockCachePreWarmer? preWarmer = null,
+            BalanceRewriter? balanceRewriter = null)
             : base(
                 specProvider,
                 blockValidator,
@@ -69,6 +71,7 @@ namespace Nethermind.Consensus.AuRa
             _txFilter = txFilter ?? NullTxFilter.Instance;
             _gasLimitOverride = gasLimitOverride;
             _contractRewriter = contractRewriter;
+            _balanceRewriter = balanceRewriter;
             AuRaValidator = auRaValidator ?? new NullAuRaValidator();
             if (blockTransactionsExecutor is IBlockProductionTransactionsExecutor produceBlockTransactionsStrategy)
             {
@@ -82,6 +85,7 @@ namespace Nethermind.Consensus.AuRa
         {
             ValidateAuRa(block);
             _contractRewriter?.RewriteContracts(block.Number, _stateProvider, _specProvider.GetSpec(block.Header));
+            _balanceRewriter?.Apply(block.Number, _stateProvider, _specProvider.GetSpec(block.Header), _logger);
             AuRaValidator.OnBlockProcessingStart(block, options);
             TxReceipt[] receipts = base.ProcessBlock(block, blockTracer, options);
             AuRaValidator.OnBlockProcessingEnd(block, receipts, options);

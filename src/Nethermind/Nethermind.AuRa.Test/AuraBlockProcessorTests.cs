@@ -144,7 +144,53 @@ namespace Nethermind.AuRa.Test
             stateProvider.GetCode(TestItem.AddressB).Should().BeEquivalentTo(Bytes.FromHexString("0x654"));
         }
 
-        private (AuRaBlockProcessor Processor, IWorldState StateProvider) CreateProcessor(ITxFilter? txFilter = null, ContractRewriter? contractRewriter = null)
+        [Test]
+        public void Should_apply_balance_recovery()
+        {
+            void Process(AuRaBlockProcessor auRaBlockProcessor, int blockNumber, Hash256 stateRoot)
+            {
+                BlockHeader header = Build.A.BlockHeader.WithAuthor(TestItem.AddressD).WithNumber(blockNumber).TestObject;
+                Block block = Build.A.Block.WithHeader(header).TestObject;
+                auRaBlockProcessor.Process(
+                    stateRoot,
+                    new List<Block> { block },
+                    ProcessingOptions.None,
+                    NullBlockTracer.Instance);
+            }
+
+            BalanceRewriter rewriter = new(new Nethermind.Consensus.AuRa.BalanceRecovery.BalanceRecoveryConfig
+            {
+                BlockNumber = 2,
+                Transfers =
+                [
+                    new()
+                    {
+                        From = TestItem.AddressA,
+                        To = TestItem.AddressC,
+                        Amount = 40
+                    }
+                ]
+            });
+
+            (AuRaBlockProcessor processor, IWorldState stateProvider) =
+                CreateProcessor(balanceRewriter: rewriter);
+
+            stateProvider.CreateAccount(TestItem.AddressA, 100);
+            stateProvider.Commit(London.Instance);
+            stateProvider.CommitTree(0);
+            stateProvider.RecalculateStateRoot();
+
+            Process(processor, 1, stateProvider.StateRoot);
+            stateProvider.GetBalance(TestItem.AddressA).Should().Be((UInt256)100);
+            stateProvider.GetBalance(TestItem.AddressC).Should().Be(UInt256.Zero);
+
+            Process(processor, 2, stateProvider.StateRoot);
+            stateProvider.GetBalance(TestItem.AddressA).Should().Be((UInt256)60);
+            stateProvider.GetBalance(TestItem.AddressC).Should().Be((UInt256)40);
+            stateProvider.AccountExists(TestItem.AddressC).Should().BeTrue();
+        }
+
+        private (AuRaBlockProcessor Processor, IWorldState StateProvider) CreateProcessor(ITxFilter? txFilter = null, ContractRewriter? contractRewriter = null, BalanceRewriter? balanceRewriter = null)
         {
             IDb stateDb = new MemDb();
             IDb codeDb = new MemDb();
@@ -163,7 +209,8 @@ namespace Nethermind.AuRa.Test
                 Substitute.For<IBlockTree>(),
                 new WithdrawalProcessor(stateProvider, LimboLogs.Instance),
                 txFilter: txFilter,
-                contractRewriter: contractRewriter);
+                contractRewriter: contractRewriter,
+                balanceRewriter: balanceRewriter);
 
             return (processor, stateProvider);
         }

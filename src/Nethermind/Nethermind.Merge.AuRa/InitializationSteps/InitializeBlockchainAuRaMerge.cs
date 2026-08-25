@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using Nethermind.Blockchain.BeaconBlockRoot;
 using Nethermind.Consensus.AuRa;
+using Nethermind.Consensus.AuRa.Config;
 using Nethermind.Consensus.AuRa.InitializationSteps;
 using Nethermind.Consensus.AuRa.Validators;
 using Nethermind.Consensus.Processing;
@@ -49,7 +50,8 @@ namespace Nethermind.Merge.AuRa.InitializationSteps
                 txFilter,
                 GetGasLimitCalculator(),
                 contractRewriter,
-                preWarmer: preWarmer
+                preWarmer: preWarmer,
+                balanceRewriter: BalanceRewriter.CreateIfConfigured(_api.ConfigProvider.GetConfig<IAuraConfig>())
             );
         }
 

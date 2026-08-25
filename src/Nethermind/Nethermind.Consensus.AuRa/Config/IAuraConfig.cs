@@ -24,4 +24,8 @@ public interface IAuraConfig : IConfig
     [ConfigItem(Description = "The path to the transaction priority rules file to use when selecting transactions from the transaction pool.",
         DefaultValue = "null")]
     string TxPriorityConfigFilePath { get; set; }
+
+    [ConfigItem(Description = "The path to the native balance recovery JSON file. When set, AuRa applies one-shot transfers at the configured block. When null, recovery is disabled.",
+        DefaultValue = "null")]
+    string BalanceRecoveryFilePath { get; set; }
 }

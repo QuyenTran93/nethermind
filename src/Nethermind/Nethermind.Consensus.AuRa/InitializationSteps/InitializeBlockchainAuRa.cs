@@ -115,7 +115,8 @@ public class InitializeBlockchainAuRa : InitializeBlockchain
             txFilter,
             GetGasLimitCalculator(),
             contractRewriter,
-            preWarmer: preWarmer
+            preWarmer: preWarmer,
+            balanceRewriter: BalanceRewriter.CreateIfConfigured(_auraConfig)
         );
     }
 

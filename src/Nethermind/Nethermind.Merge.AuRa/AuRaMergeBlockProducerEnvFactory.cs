@@ -1,10 +1,12 @@
 // SPDX-FileCopyrightText: 2023 Demerzel Solutions Limited
 // SPDX-License-Identifier: LGPL-3.0-only
 
+using System.Collections.Generic;
 using Nethermind.Blockchain;
 using Nethermind.Blockchain.BeaconBlockRoot;
 using Nethermind.Blockchain.Receipts;
 using Nethermind.Config;
+using Nethermind.Consensus.AuRa;
 using Nethermind.Consensus.AuRa.Config;
 using Nethermind.Consensus.AuRa.InitializationSteps;
 using Nethermind.Consensus.Comparers;
@@ -65,6 +67,9 @@ public class AuRaMergeBlockProducerEnvFactory : BlockProducerEnvFactory
     {
         var withdrawalContractFactory = new WithdrawalContractFactory(_auraApi.ChainSpec!.AuRa, _auraApi.AbiEncoder);
 
+        IDictionary<long, IDictionary<Address, byte[]>> rewriteBytecode = _auraApi.ChainSpec!.AuRa.RewriteBytecode;
+        ContractRewriter? contractRewriter = rewriteBytecode?.Count > 0 ? new ContractRewriter(rewriteBytecode) : null;
+
         return new AuRaMergeBlockProcessor(
             specProvider,
             blockValidator,
@@ -81,7 +86,9 @@ public class AuRaMergeBlockProducerEnvFactory : BlockProducerEnvFactory
                     logManager
                     )
                 ),
-            null);
+            null,
+            contractRewriter: contractRewriter,
+            balanceRewriter: BalanceRewriter.CreateIfConfigured(_auraApi.ConfigProvider.GetConfig<IAuraConfig>()));
     }
 
     protected override TxPoolTxSource CreateTxPoolTxSource(
