@@ -163,7 +163,7 @@ public class StartBlockProducerAuRa
             auRaTxFilter,
             CreateGasLimitCalculator(_api) as AuRaContractGasLimitOverride,
             contractRewriter,
-            balanceRewriter: BalanceRewriter.CreateIfConfigured(_auraConfig));
+            balanceRewriter: BalanceRewriter.Create());
     }
 
     internal TxPoolTxSource CreateTxPoolTxSource()

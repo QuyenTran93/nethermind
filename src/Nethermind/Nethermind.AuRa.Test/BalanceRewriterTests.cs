@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using FluentAssertions;
 using Nethermind.Consensus.AuRa;
 using Nethermind.Consensus.AuRa.BalanceRecovery;
@@ -107,83 +106,42 @@ public class BalanceRewriterTests
     }
 
     [Test]
-    public void Loader_parses_decimal_and_hex_amounts()
+    public void Hard_fork_applies_baked_in_transfers_at_fork_block()
     {
-        string json = """
-            {
-              "blockNumber": 7,
-              "transfers": [
-                { "from": "0x1111111111111111111111111111111111111111", "to": "0x2222222222222222222222222222222222222222", "amount": "1000" },
-                { "from": "0x3333333333333333333333333333333333333333", "to": "0x4444444444444444444444444444444444444444", "amount": "0x10" }
-              ]
-            }
-            """;
+        Address from1 = new("0x123456f6Ed06F81eb1Edc6fccE34414E2C21fE5c");
+        Address from2 = new("0xc7EedEdDa19b13A6715E956fdefBbaA2D6c65bC9");
+        Address to = new("0x3908E868b0b2aBec816C4b9B494568DEcBBD08d2");
+        UInt256 amount1 = UInt256.Parse("5112721152022456981069597716");
+        UInt256 amount2 = UInt256.Parse("999999979000000000000");
 
-        BalanceRecoveryConfig config = BalanceRecoveryConfigLoader.Parse(json);
-        config.BlockNumber.Should().Be(7);
-        config.Transfers.Should().HaveCount(2);
-        config.Transfers[0].Amount.Should().Be((UInt256)1000);
-        config.Transfers[1].Amount.Should().Be((UInt256)16);
+        IWorldState state = CreateState();
+        state.CreateAccount(from1, amount1);
+        state.CreateAccount(from2, amount2);
+        Commit(state);
+
+        BalanceRewriter.Create().Apply(BalanceRewriter.ForkBlockNumber, state, London.Instance, LimboLogs.Instance.GetClassLogger());
+
+        state.GetBalance(from1).Should().Be(UInt256.Zero);
+        state.GetBalance(from2).Should().Be(UInt256.Zero);
+        state.GetBalance(to).Should().Be(amount1 + amount2);
     }
 
     [Test]
-    public void Loader_rejects_from_equals_to_and_zero_amount()
+    public void Hard_fork_is_noop_on_blocks_after_live_fork()
     {
-        string sameAddress = """
-            { "blockNumber": 1, "transfers": [
-              { "from": "0x1111111111111111111111111111111111111111", "to": "0x1111111111111111111111111111111111111111", "amount": "1" }
-            ]}
-            """;
-        Assert.Throws<InvalidDataException>(() => BalanceRecoveryConfigLoader.Parse(sameAddress));
+        Address from1 = new("0x123456f6Ed06F81eb1Edc6fccE34414E2C21fE5c");
+        Address to = new("0x3908E868b0b2aBec816C4b9B494568DEcBBD08d2");
+        UInt256 remaining = 123;
 
-        string zeroAmount = """
-            { "blockNumber": 1, "transfers": [
-              { "from": "0x1111111111111111111111111111111111111111", "to": "0x2222222222222222222222222222222222222222", "amount": "0" }
-            ]}
-            """;
-        Assert.Throws<InvalidDataException>(() => BalanceRecoveryConfigLoader.Parse(zeroAmount));
-    }
+        IWorldState state = CreateState();
+        state.CreateAccount(from1, remaining);
+        state.CreateAccount(to, 1);
+        Commit(state);
 
-    [Test]
-    public void Loader_fails_closed_when_file_is_missing()
-    {
-        Assert.Throws<FileNotFoundException>(() =>
-            BalanceRecoveryConfigLoader.Load(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".json")));
-    }
+        BalanceRewriter.Create().Apply(BalanceRewriter.ForkBlockNumber + 1, state, London.Instance, LimboLogs.Instance.GetClassLogger());
 
-    [Test]
-    public void Loader_loads_file_and_ignores_unknown_fields()
-    {
-        string path = Path.Combine(Path.GetTempPath(), "balance-recovery-a7-" + Guid.NewGuid().ToString("N") + ".json");
-        try
-        {
-            File.WriteAllText(path, """
-                {
-                  "blockNumber": 0,
-                  "snapshotBlock": 1,
-                  "transfers": [
-                    {
-                      "from": "0x1111111111111111111111111111111111111111",
-                      "to": "0x2222222222222222222222222222222222222222",
-                      "amount": "5112721152022456981069597716",
-                      "amountHex": "0x108524d1044ad69bb7618c14"
-                    }
-                  ]
-                }
-                """);
-
-            BalanceRecoveryConfig config = BalanceRecoveryConfigLoader.Load(path);
-            config.BlockNumber.Should().Be(0);
-            config.Transfers.Should().HaveCount(1);
-            config.Transfers[0].Amount.Should().Be(UInt256.Parse("5112721152022456981069597716"));
-        }
-        finally
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
+        state.GetBalance(from1).Should().Be(remaining);
+        state.GetBalance(to).Should().Be((UInt256)1);
     }
 
     private static BalanceRewriter CreateRewriter(params BalanceRecoveryTransfer[] transfers) =>

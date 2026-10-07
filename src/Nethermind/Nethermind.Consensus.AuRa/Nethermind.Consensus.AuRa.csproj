@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <Nullable>annotations</Nullable>
+    <DefineConstants Condition="'$(BalanceForkProfile)' == 'Test'">$(DefineConstants);BALANCE_FORK_TEST</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

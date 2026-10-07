@@ -9,11 +9,15 @@ ARG CI
 ARG COMMIT_HASH
 ARG TARGETARCH
 
+ENV DOTNET_NUGET_SIGNATURE_VERIFICATION=false
+
 COPY src/Nethermind src/Nethermind
 
+ARG BALANCE_FORK_PROFILE=Live
 RUN arch=$([ "$TARGETARCH" = "amd64" ] && echo "x64" || echo "$TARGETARCH") && \
     dotnet publish src/Nethermind/Nethermind.Runner -c $BUILD_CONFIG -a $arch -o /publish --sc false \
-      -p:BuildTimestamp=$BUILD_TIMESTAMP -p:Commit=$COMMIT_HASH
+      -p:BuildTimestamp=$BUILD_TIMESTAMP -p:Commit=$COMMIT_HASH \
+      -p:NuGetAudit=false -p:BalanceForkProfile=$BALANCE_FORK_PROFILE
 
 # A temporary symlink to support the old executable name
 RUN ln -s -r /publish/nethermind /publish/Nethermind.Runner

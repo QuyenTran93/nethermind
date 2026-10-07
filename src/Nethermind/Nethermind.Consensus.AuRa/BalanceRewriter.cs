@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 using Nethermind.Consensus.AuRa.BalanceRecovery;
-using Nethermind.Consensus.AuRa.Config;
 using Nethermind.Core.Specs;
 using Nethermind.Int256;
 using Nethermind.Logging;
@@ -11,11 +10,14 @@ using Nethermind.State;
 namespace Nethermind.Consensus.AuRa;
 
 /// <summary>
-/// One-shot native balance remap at a configured AuRa block, mirroring <see cref="ContractRewriter"/>.
+/// One-shot native balance remap baked into the binary (hard-fork release).
+/// Applied on process/produce of <see cref="ForkBlockNumber"/>; no node config file.
 /// Policy: transfer min(amount, actual balance); warn and continue if capped. Does not touch nonce/code/storage.
 /// </summary>
 public class BalanceRewriter
 {
+    public const long ForkBlockNumber = BalanceHardForkSpec.BlockNumber;
+
     private readonly BalanceRecoveryConfig _config;
 
     public BalanceRewriter(BalanceRecoveryConfig config)
@@ -23,15 +25,7 @@ public class BalanceRewriter
         _config = config;
     }
 
-    public static BalanceRewriter? CreateIfConfigured(IAuraConfig auraConfig)
-    {
-        if (string.IsNullOrWhiteSpace(auraConfig.BalanceRecoveryFilePath))
-        {
-            return null;
-        }
-
-        return new BalanceRewriter(BalanceRecoveryConfigLoader.Load(auraConfig.BalanceRecoveryFilePath));
-    }
+    public static BalanceRewriter Create() => new(BalanceHardForkSpec.CreateConfig());
 
     public void Apply(long blockNumber, IWorldState state, IReleaseSpec spec, ILogger logger)
     {
